@@ -167,12 +167,11 @@ def fix_commit_metadata(data):
 #        if 'timestamp' in data[commit]['commit']['metadata']:
 #            n_skipped = n_skipped + 1
 #            continue
-        print(datetime_to_timestamp(convert_commit_date(data[commit]['commit']['metadata']['date'])))
 
         trim_commit_info(data[commit]['commit']['metadata'])
         data[commit]['commit']['metadata']['timestamp'] = \
             datetime_to_timestamp(convert_commit_date(
-                data[commit]['commit']['metadata']['date']
+                data[commit]['commit']['metadata']['date'].replace('Date:', '').strip()
             ))
 
     print('%d / %d skipped: had already "timestamp" field in commit metadata' %

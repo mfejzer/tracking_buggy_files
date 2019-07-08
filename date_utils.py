@@ -2,6 +2,7 @@
 from datetime import date, datetime, timedelta, tzinfo
 from time import mktime, strptime
 
+
 #Taken from https://stackoverflow.com/questions/1101508/how-to-parse-dates-with-0400-timezone-string-in-python/23122493#23122493 
 class FixedOffset(tzinfo):
     """Fixed offset in minutes: `time = utc_time + utc_offset`."""
@@ -21,6 +22,7 @@ class FixedOffset(tzinfo):
     def __repr__(self):
         return 'FixedOffset(%d)' % (self.utcoffset().total_seconds() / 60) 
 
+
 #Taken from https://stackoverflow.com/questions/2331592/why-does-datetime-datetime-utcnow-not-contain-timezone-information
 # A UTC class.
 class UTC(tzinfo):
@@ -32,7 +34,8 @@ class UTC(tzinfo):
     def dst(self, dt):
         return timedelta(0)
     def __repr__(self):
-        return 'UTC' 
+        return 'UTC'
+
 
 def convert_commit_date(date_as_string):
     native_date_str, _, offset_str = date_as_string.rpartition(' ')
@@ -43,10 +46,12 @@ def convert_commit_date(date_as_string):
     date = native_date.replace(tzinfo=FixedOffset(offset))
     return date
 
+
 def convert_bug_report_timestamp(timestamp_as_string):
     date = datetime.utcfromtimestamp(float(timestamp_as_string))
     date = date.replace(tzinfo=UTC())
     return date
+
 
 # see https://stackoverflow.com/questions/8777753/converting-datetime-date-to-utc-timestamp-in-python
 # section "How to convert an aware datetime object to POSIX timestamp"
@@ -70,7 +75,7 @@ def datetime_to_timestamp(dt, epoch=datetime(1970, 1, 1, tzinfo=UTC())):
     #assert dt.tzinfo is not None and dt.utcoffset() is not None
     try:
         # Python 3.3+
-        dt.timestamp()
+        return dt.timestamp()
     except:
         # Python 2.x
         return (dt - epoch).total_seconds()

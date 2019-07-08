@@ -164,9 +164,9 @@ def fix_commit_metadata(data):
     """
     n_skipped = 0
     for commit in tqdm(data):
-#        if 'timestamp' in data[commit]['commit']['metadata']:
-#            n_skipped = n_skipped + 1
-#            continue
+        if 'timestamp' in data[commit]['commit']['metadata']:
+            n_skipped = n_skipped + 1
+            continue
 
         trim_commit_info(data[commit]['commit']['metadata'])
         data[commit]['commit']['metadata']['timestamp'] = \

@@ -228,7 +228,7 @@ def process_data(store, data, repo, count_files=False):
     # (i.e. bytes).  NOTE: this may change for Python 3.x
     #
     # NOTE: SHA-1 hash in hex is always in 'ascii' range and encoding
-    br_remaining = map(str, br_remaining)
+    br_remaining = list(map(str, br_remaining))
     br_new = []
 
     print('Computing br(r,t)', file=sys.stderr)

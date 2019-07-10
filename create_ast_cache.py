@@ -80,11 +80,8 @@ def cat_file_blob(repository_path, sha, encoding='latin-1'):
 
 def ls_tree(repository_path, sha):
     cmd = ' '.join(['git', '-C', repository_path, 'ls-tree', '-r', sha])
-    print(cmd)
     ls_results = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout.read().decode('latin-1').split('\n')
-    print(ls_results)
-    exit(0)
-    return ls_results
+    return ls_results[:-1]
 
 
 def _process_notes(note, repository_path):

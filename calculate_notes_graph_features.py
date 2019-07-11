@@ -73,7 +73,7 @@ def calculate_graph_features_for_each_fix(fixes_list, data_prefix, repository_pa
     notes = list_notes(repository_path)
     sha_to_note = {}
     for note in notes:
-        note_content_sha, note_object_sha = str(note, 'utf-8').split(' ')
+        note_content_sha, note_object_sha = note.split(' ')
         sha_to_note[note_object_sha] = note_content_sha
     manager = Manager()
     d = manager.dict()
@@ -196,15 +196,15 @@ def process_graph_results(sha_to_imports):
     return process_graph(G)
 
 
-def list_notes(repository_path, refs='refs/notes/graph'):
-    cmd = ['git', '-C', repository_path, 'notes', '--ref', refs, 'list']
-    notes_list_process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-    return [l.rstrip() for l in notes_list_process.stdout.readlines()]
+def list_notes(repository_path, refs='refs/notes/commits'):
+    cmd = ' '.join(['git', '-C', repository_path, 'notes', '--ref', refs, 'list'])
+    notes_lines = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout.read().decode('latin-1').split('\n')
+    return notes_lines[:-1]
 
 
 def cat_file_blob(repository_path, sha, encoding='latin-1'):
-    cmd = ['git', '-C', repository_path, 'cat-file', 'blob', sha]
-    cat_file_process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    cmd = ' '.join(['git', '-C', repository_path, 'cat-file', 'blob', sha])
+    cat_file_process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     result = cat_file_process.stdout.read().decode(encoding)
     return result
 

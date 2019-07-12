@@ -196,7 +196,7 @@ def process_graph_results(sha_to_imports):
     return process_graph(G)
 
 
-def list_notes(repository_path, refs='refs/notes/commits'):
+def list_notes(repository_path, refs='refs/notes/graph'):
     cmd = ' '.join(['git', '-C', repository_path, 'notes', '--ref', refs, 'list'])
     notes_lines = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).stdout.read().decode('latin-1').split('\n')
     return notes_lines[:-1]

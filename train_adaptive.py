@@ -7,41 +7,29 @@ Requires results of save_normalized_fold_dataframes.py
 """
 
 import json
-import gc
-import inspect
 import os
-import shutil
+import time
 import sys
-from functools import partial, update_wrapper
+from collections import defaultdict
 from itertools import product
+from timeit import default_timer
 
+import gc
 import numpy as np
 import pandas as pd
 import tqdm
 from joblib import Parallel, delayed
-from scipy.optimize import Bounds, minimize
+from scipy.stats import kruskal, ttest_ind, levene
 from sklearn.decomposition import *
 from sklearn.ensemble import *
-from sklearn.ensemble import IsolationForest
 from sklearn.feature_selection import *
 from sklearn.linear_model import *
-from sklearn.mixture import GaussianMixture
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import KFold
-from sklearn.svm import *
-from skopt import *
-from collections import defaultdict
-from metrics import get_no_tie_on_df
-from train_utils import eprint, load_data_folds
-from sklearn.manifold import TSNE
-
-from sklearn.cluster import DBSCAN, Birch, MeanShift, KMeans
-from sklearn.mixture import GaussianMixture
-from timeit import default_timer
-import time
 from sklearn.utils import safe_mask
-from scipy.stats import kruskal, ttest_ind, levene, mannwhitneyu, ranksums
+from skopt import *
+
+from metrics import calculate_metric_results
+from train_utils import eprint
 
 feature_columns = [
     "f1",
@@ -91,7 +79,7 @@ def _process(ptemplate, fold_training, fold_testing):
     return result
 
 
-def process(ptemplate, fold_number, fold_testing, fold_training, file_prefix, tie_break="f1"):
+def process(ptemplate, fold_number, fold_testing, fold_training, file_prefix):
     results_list = []
 
     for i in range(fold_number):
@@ -148,19 +136,11 @@ def process(ptemplate, fold_number, fold_testing, fold_training, file_prefix, ti
         json.dump(best_prescoring_log, best_prescoring_log_file)
     with open(file_prefix + '_' + ptemplate.name + '_best_regression_log_'+results_timestamp, 'w') as best_regression_log_file:
         json.dump(best_regression_log, best_regression_log_file)
-    # if tie_break is not None or False:
-    #     rank_by = all_results_df[tie_break]
-    #     all_results_df['result'] = all_results_df['result'].rank(
-    #         method='dense') + (rank_by / rank_by.sum())
-    unique_results = all_results_df["result"].unique()
-    all_results = all_results_df["result"]
 
     try:
         return {
             "name": ptemplate.name,
-            "tie_break": tie_break,
-            "ties": (unique_results.shape[0]) / all_results.shape[0],
-            "results": get_no_tie_on_df(all_results_df),
+            "results": calculate_metric_results(all_results_df),
         }
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -223,22 +203,6 @@ def weights_ExtraTreesClassifier(df, columns):
     return _weights_normalize(weights)
 
 
-def weights_SGDClassifier(df, columns):
-    tree = SGDClassifier(class_weight="balanced", shuffle=False)
-
-    Y = df['used_in_fix']
-    in_mask = (Y == 1)
-
-    r_mask = (Y == 1)
-    r_mask[:2*sum(in_mask)]=True
-
-    tree.fit(df[r_mask][columns], df[r_mask]["used_in_fix"])
-    weights = np.asanyarray(tree.coef_[0])
-    weights += np.abs(np.amin(weights))
-
-    return weights
-
-
 def weights_GradientBoostingClassifier(df, columns):
     tree = GradientBoostingRegressor(n_estimators=100)
     tree.fit(df[columns], df["used_in_fix"])
@@ -293,25 +257,6 @@ def ttest_ind_classif(X, y):
     return np.asanyarray(ret_k), np.asanyarray(ret_p)
 
 
-def weights_levene_mean(df, columns):
-    weights = levene_mean(df[columns], df["used_in_fix"])
-    weights = weights[0]
-
-    return _weights_normalize(weights)
-
-
-def levene_mean(X, y):
-    ret_k = []
-    ret_p = []
-
-    for column in X:
-        args = [X[safe_mask(X, y == k)][column] for k in np.unique(y)]
-        r = levene(args[0], args[1], center='mean')
-        ret_k.append(abs(r[0]))
-        ret_p.append(r[1])
-    return np.asanyarray(ret_k), np.asanyarray(ret_p)
-
-
 def weights_levene_median(df, columns):
     weights = levene_median(df[columns], df["used_in_fix"])
     weights = weights[0]
@@ -331,85 +276,6 @@ def levene_median(X, y):
     return np.asanyarray(ret_k), np.asanyarray(ret_p)
 
 
-def weights_levene_trimmed(df, columns):
-    weights = levene_trimmed(df[columns], df["used_in_fix"])
-    weights = weights[0]
-
-    return _weights_normalize(weights)
-
-
-def weights_levene_mean_p_value(df, columns):
-    weights = levene_mean(df[columns], df["used_in_fix"])
-    weights = 1 - weights[1]
-
-    return weights
-
-
-def mannwhitneyu_p(X, y):
-    ret_k = []
-    ret_p = []
-    args = [0,0]
-
-    for column in X:
-        args[0] = X[safe_mask(X, y == 0)][column]
-        args[1] = X[safe_mask(X, y == 1)][column]
-        #r = mannwhitneyu(args[0], args[1], alternative="less")
-        r = ranksums(args[1], args[0])
-        ret_k.append(abs(r[0]))
-        ret_p.append(r[1])
-    return np.asanyarray(ret_k), np.asanyarray(ret_p)
-
-
-def weights_mannwhitneyu_p(df, columns):
-    weights = mannwhitneyu_p(df[columns], df["used_in_fix"])
-
-    weights = weights[0]
-
-    return _weights_normalize(weights)
-    weights = weights[0]
-
-    return weights
-
-
-def weights_levene_mean_f_selection_k(df, columns, k):
-    weights = levene_mean(df[columns], df["used_in_fix"])
-    weights = weights[0]
-    idx = np.argpartition(weights, -k)[-k:]
-    weights = np.zeros(weights.shape)
-    weights[idx] = 1
-
-    return _weights_normalize(weights)
-
-
-def weights_levene_median_f_selection_k(df, columns, k):
-    weights = levene_median(df[columns], df["used_in_fix"])
-    weights = weights[0]
-    idx = np.argpartition(weights, -k)[-k:]
-    weights = np.zeros(weights.shape)
-    weights[idx] = 1
-
-    return _weights_normalize(weights)
-
-
-def levene_trimmed(X, y):
-    ret_k = []
-    ret_p = []
-
-    for column in X:
-        args = [X[safe_mask(X, y == k)][column] for k in np.unique(y)]
-        r = levene(args[0], args[1], center='trimmed')
-        ret_k.append(abs(r[0]))
-        ret_p.append(r[1])
-    return np.asanyarray(ret_k), np.asanyarray(ret_p)
-
-
-def weights_var(df, columns):
-    weights_var = np.var(df[df["used_in_fix"]==1][columns], axis=0)
-    weights_var1 = np.var(df[df["used_in_fix"]==0][columns], axis=0)
-
-    return weights_var / weights_var1
-
-
 def weights_mean_var(df, columns):
     weights_var = np.var(df[df["used_in_fix"]==1][columns], axis=0)
     weights_mean = np.mean(df[df["used_in_fix"]==1][columns], axis=0)
@@ -419,20 +285,11 @@ def weights_mean_var(df, columns):
     return (weights_var / weights_mean) / (weights_var1 / weights_var1_mean)
 
 
-def weights_median_absolute_deviation(df, columns):
-    weights_median = np.median(df[df["used_in_fix"]==1][columns], axis=0)
-    weights_mad = np.median(np.abs(df[df["used_in_fix"]==1][columns] - weights_median), axis=0)
-    # weights_median1 = np.median(df[df["used_in_fix"]==0][columns], axis=0)
-    # weights_mad1 = np.median(np.abs(df[df["used_in_fix"]==0][columns] - weights_median1, axis=0), axis=0)
-    return weights_mad # / weights_mad1
-
-
 def weights_maximum_absolute_deviation(df, columns):
     weights_max = np.max(df[df["used_in_fix"]==1][columns], axis=0)
     weights_mad = np.mean(np.abs(df[df["used_in_fix"]==1][columns] - weights_max), axis=0)
-    # weights_median1 = np.median(df[df["used_in_fix"]==0][columns], axis=0)
-    # weights_mad1 = np.mean(np.abs(df[df["used_in_fix"]==0][columns] - weights_median1, axis=0), axis=0)
-    return weights_mad # / weights_mad1
+
+    return weights_mad
 
 
 def evaluate_fold(df, Y):
@@ -442,7 +299,7 @@ def evaluate_fold(df, Y):
     r["result"] = Y
     min_fix_result = r[r["used_in_fix"] == 1.0]["result"].min()
     minimal_reasonable_set = r[r["result"] >= min_fix_result].copy()
-    acc, m_a_p, mrr, k_range = get_no_tie_on_df(minimal_reasonable_set)
+    acc, m_a_p, mrr, k_range = calculate_metric_results(minimal_reasonable_set)
     # eprint()
     # eprint("evaluate fold")
     # eprint(len(np.unique(Y)))
@@ -479,23 +336,15 @@ def fold_check_combination(w1, w2, df):
 def size_selectf_only_fixes(df, score):
     used_in_fix = df["used_in_fix"] == 1
     ret = used_in_fix
-    # eprint("11>>>>>>>>>",ret.sum())
 
     G = df[["used_in_fix", "f1"]].copy(deep=False)
     G["score"] = score
 
-    # top20_per_bug = G["score"].groupby(level=0).apply(lambda x: x.nlargest(10).min())
-    # top20 = top20_per_bug.nsmallest(1000)
-    # eprint("12>>>>>>>>>",)
-    # ret |= G['score'].isin(top20)
-
-    # ret |= G['score'].isin(G['score'].nlargest(500))
     t = G[G['score'] > 0]['score']
     tm = t.nsmallest(int(0.25 * used_in_fix.sum())).max()
     ret |= G['score'] <= tm
     ret &= G['score'] > 0
 
-    # eprint("12>>>>>>>>>",ret.sum(), int(0.30*used_in_fix.sum()), tm)
     return ret
 
 
@@ -597,8 +446,6 @@ class Adaptive_Process(object):
 
         # Works for aspectj, birt, swt
         self.cut_methods = []
-        # self.cut_methods.append(size_selectf_only_fixes)
-
         self.cut_methods.append(size_selectf_only_fixes_p_perc_05)
         self.cut_methods.append(size_selectf_only_fixes_p_perc_10)
         self.cut_methods.append(size_selectf_only_fixes_p_perc_15)
@@ -618,11 +465,6 @@ class Adaptive_Process(object):
 
         self.enforce_relearning = True
 
-        self.use_multiplied_features = False
-
-        self.use_aggregated_features = False
-        self.drop_not_aggregated_features = False
-
         self.use_prescoring_always = False
         self.use_reg_model_always = True
 
@@ -632,7 +474,6 @@ class Adaptive_Process(object):
 
         self.previous_models = []
 
-        self.pca = None
         self.reg_model = None
         self.cut_method = None
         self.score_method = None
@@ -684,56 +525,6 @@ class Adaptive_Process(object):
                 delayed(fold_check)(m, df, columns) for m in tqdm.tqdm(self.weights_methods)
             )
             self.weights = dict(results)
-
-    def add_multiplied_features(self, df, columns):
-        similarity_features = ['f7', 'f8', 'f9', 'f10', 'f11', 'f12', 'f13', 'f14']
-        graph_features = ['f15', 'f16', 'f17', 'f18', 'f19']
-        for s_feature in similarity_features:
-            for g_feature in graph_features:
-                v = df[s_feature] * df[g_feature]
-                n = s_feature+g_feature
-                columns.append(n)
-                df[n] = v
-        return df, columns
-
-    def add_combined_features(self, df, columns):
-        feature_groups = [
-            ['f7', 'f8', 'f9', 'f10'],
-            ['f11', 'f12', 'f13', 'f14'],
-            ['f7', 'f8', 'f9', 'f10', 'f11', 'f12', 'f13', 'f14'],
-            ['f15', 'f16', 'f17', 'f18', 'f19'],
-            ['f17', 'f18', 'f19'],
-            ['f15', 'f16'],
-        ]
-        for feature_group in feature_groups:
-            max_per_row = df[feature_group].max(axis=1)
-            max_feature_name = str(feature_group)+'max'
-            df[max_feature_name] = max_per_row
-            columns.append(max_feature_name)
-
-            median_per_row = df[feature_group].median(axis=1)
-            median_feature_name = str(feature_group)+'median'
-            df[median_feature_name] = median_per_row
-            columns.append(median_feature_name)
-
-            min_per_row = df[feature_group].min(axis=1)
-            min_feature_name = str(feature_group)+'min'
-            df[min_feature_name] = min_per_row
-            columns.append(min_feature_name)
-
-        if self.drop_not_aggregated_features:
-            selected_feature_columns = feature_columns.copy()
-            selected_feature_columns.remove("f1")
-            selected_feature_columns.remove("f2")
-            selected_feature_columns.remove("f3")
-            selected_feature_columns.remove("f4")
-            selected_feature_columns.remove("f5")
-            selected_feature_columns.remove("f6")
-            df = df.drop(columns=selected_feature_columns)
-            for feature_column in selected_feature_columns:
-                columns.remove(feature_column)
-
-        return df, columns
 
     def adapt_process(self, df, columns):
         eprint("=============== Weights Select")
@@ -800,17 +591,6 @@ class Adaptive_Process(object):
             name = self.reg_model_name
         return name
 
-    def transform_with_pca(self, df, columns):
-        self.pca = TruncatedSVD(n_components=5)
-        self.pca.fit(df[df['used_in_fix'] == 1][columns])
-        ndf = pd.DataFrame(self.pca.transform(df[columns]))
-        ndf.index = df.index
-        feature_pca = ndf.columns
-        ndf['used_in_fix'] = df['used_in_fix']
-        df = ndf
-        columns = feature_pca
-        return df, columns
-
     def _train(self, df, columns, weights, score_method, reg_model, cut_method):
 
         score = score_method(df, columns, weights)
@@ -834,12 +614,6 @@ class Adaptive_Process(object):
                 kdf_test = df.iloc[test_index]
                 pres = cut_fit_predict(kdf, kdf_test, columns, kscore, kscore_fixed, cut_method, reg_model)
 
-                # cut_set = cut_method(kdf, kscore)
-                # kX = kdf[cut_set]
-                # reg_model.fit(kX[feature_columns], kscore_fixed[cut_set])
-                # Y = reg_model.predict(df[feature_columns].iloc[test_index])
-                # partial_eval_result = evaluate_fold(df.iloc[test_index], Y)
-
                 partial_eval_results.append(pres)
             eval_result = np.mean(partial_eval_results)
             return str(reg_model), cut_method.__name__, score_method.__name__, eval_result
@@ -849,12 +623,6 @@ class Adaptive_Process(object):
     def train(self, df):
         before_training = default_timer()
         columns = feature_columns.copy()
-
-        if self.use_multiplied_features:
-            df, columns = self.add_multiplied_features(df, columns)
-
-        if self.use_aggregated_features:
-            df, columns = self.add_combined_features(df, columns)
 
         if not self.first_fold_processed or self.enforce_relearning:
             self.adapt_process(df, columns)
@@ -875,13 +643,6 @@ class Adaptive_Process(object):
     def predict(self, clf, df):
         df.index.names = ["bid", "fid"]
         columns = self.columns.copy()
-        df_columns = feature_columns.copy()
-
-        if self.use_multiplied_features:
-            df, df_columns = self.add_multiplied_features(df, df_columns)
-
-        if self.use_aggregated_features:
-            df, df_columns = self.add_combined_features(df, df_columns)
 
         X = df[columns].values
 
@@ -891,7 +652,6 @@ class Adaptive_Process(object):
         else:
             result = np.dot(X, self.weights)
 
-        # result = self.post_score(df, X, self.W)
         r = df[["used_in_fix", "f1"]].copy(deep=False)
         r["result"] = result
 

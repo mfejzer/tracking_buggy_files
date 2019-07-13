@@ -16,7 +16,7 @@ import pandas as pd
 import sys
 
 
-def calculate_metrics_no_tie(verification_df, k_range=range(1, 21)):
+def calculate_metrics(verification_df, k_range=range(1, 21)):
     average_precision_per_bug_report = []
     reciprocal_ranks = []
     # calculate per each query (bug report)
@@ -91,18 +91,12 @@ def calculate_metrics_no_tie(verification_df, k_range=range(1, 21)):
 def main():
     df_path = sys.argv[1]
     df = pd.read_pickle(df_path)
-    print(get_no_tie_on_df(df))
+    print(calculate_metric_results(df))
 
 
-def no_tie_on_df(df, k_range=range(1, 21)):
+def calculate_metric_results(df, k_range=range(1, 21)):
     all_data_accuracy_at_k, all_data_mean_average_precision, all_data_mean_reciprocal_rank = \
-        calculate_metrics_no_tie(df, k_range)
-    print_metrics(all_data_accuracy_at_k, all_data_mean_average_precision, all_data_mean_reciprocal_rank, k_range)
-
-
-def get_no_tie_on_df(df, k_range=range(1, 21)):
-    all_data_accuracy_at_k, all_data_mean_average_precision, all_data_mean_reciprocal_rank = \
-        calculate_metrics_no_tie(df, k_range)
+        calculate_metrics(df, k_range)
     return all_data_accuracy_at_k, all_data_mean_average_precision, all_data_mean_reciprocal_rank, k_range
 
 

@@ -116,7 +116,7 @@ def process(bug_reports, file_prefix):
     # print("max", max_df.max())
     # print("min", min_df.min())
 
-    save_normalized_data(file_prefix+'_wrong_sort', fold_number, fold_testing, fold_training, max_dict, min_dict)
+    save_normalized_data(file_prefix, fold_number, fold_testing, fold_training, max_dict, min_dict)
 
 
 def save_normalized_data(file_prefix, fold_number, fold_testing, fold_training, max_dict, min_dict):

@@ -47,7 +47,7 @@ def main():
 
     try:
         shutil.rmtree(folder)
-    except:  # noqa
+    except:
         eprint('Could not clean-up automatically.')
 
     fold_number, fold_testing, fold_training = load_data_folds(file_prefix)

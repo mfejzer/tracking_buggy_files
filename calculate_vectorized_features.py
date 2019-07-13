@@ -49,7 +49,7 @@ def load_bug_reports(bug_report_file_path):
 
 
 def load_vectorized_data(data_prefix):
-    file_path = data_prefix+'_all_data.npz'
+    file_path = data_prefix + '_all_data.npz'
     print("vectorized data file path", file_path)
     vectorized_data = sparse.load_npz(file_path).tocsr()
     print("vectorized data shape", vectorized_data.shape)
@@ -59,8 +59,9 @@ def load_vectorized_data(data_prefix):
 def sort_bug_reports_by_commit_date(bug_reports):
     commit_dates = []
     for index, commit in enumerate(tqdm(bug_reports)):
-        sha = bug_reports[commit]['commit']['metadata']['sha'].replace('commit ','').strip()
-        commit_date = convert_commit_date(bug_reports[commit]['commit']['metadata']['date'].replace('Date:','').strip())
+        sha = bug_reports[commit]['commit']['metadata']['sha'].replace('commit ', '').strip()
+        commit_date = convert_commit_date(
+            bug_reports[commit]['commit']['metadata']['date'].replace('Date:', '').strip())
         commit_dates.append((sha, commit_date))
 
     sorted_commit_dates = sorted(commit_dates, key=itemgetter(1))
@@ -84,7 +85,7 @@ def load_bug_report(vectorized_data, bug_report_indexes, bug_report_id):
 
 
 def feature_1(report, data, source_index, method_start_index, method_end_index):
-    sources = data[source_index:method_end_index+1, :]
+    sources = data[source_index:method_end_index + 1, :]
     similarities = cosine_similarity(report, sources)
 
     return np.amax(similarities)
@@ -100,7 +101,7 @@ def feature_2(report, data, enriched_api_indexes, current_file_sha):
 def feature_sim(document, data, start_index, end_index):
     if start_index == end_index + 1:
         return 0.0
-    sources = data[start_index:end_index+1, :]
+    sources = data[start_index:end_index + 1, :]
     similarities = cosine_similarity(document, sources)
 
     return np.amax(similarities)
@@ -111,13 +112,13 @@ def feature_3(data, lookup, sha):
         return 0.0
     file_index = lookup[sha]
     report_summary_index = data.shape[0] - 1
-    return cosine_similarity(data[report_summary_index, :], data[file_index, :])
+    return cosine_similarity(data[report_summary_index, :], data[file_index, :])[0][0]
 
 
 def feature_4(current_bug_report_summary, ast_cache_collection, sha):
     class_names = pickle.loads(ast_cache_collection[sha])['classNames']
     class_names = remove_package_names(class_names)
-    
+
     lengths = [0]
     for class_name in class_names:
         if class_name in current_bug_report_summary:
@@ -135,7 +136,6 @@ def remove_package_name(class_name):
 
 
 def process(bug_reports, data_prefix, bug_report_file_path):
-
     sorted_commits = sort_bug_reports_by_commit_date(bug_reports)
 
     with open(data_prefix + '_features_5_6_max', 'r') as maxfile:
@@ -166,38 +166,38 @@ def retrieve_summary(bug_reports, bug_report_full_sha):
 
 
 def process_bug_report(data_prefix, bug_report_full_sha, bug_report_file_path, max_frequency):
-
-    bug_report_files_collection_db = UnQLite(data_prefix+"_bug_report_files_collection_db", flags = 0x00000100 | 0x00000001)
+    bug_report_files_collection_db = UnQLite(data_prefix + "_bug_report_files_collection_db",
+                                             flags=0x00000100 | 0x00000001)
     current_files = pickle.loads(bug_report_files_collection_db[bug_report_full_sha])
-    bug_report_files_collection_db.close() 
+    bug_report_files_collection_db.close()
 
     shas = current_files['shas']
     sha_to_file_name = current_files['sha_to_file_name']
 
     bug_report_id = bug_report_full_sha[0:7]
-    vectorized_data = sparse.load_npz(data_prefix+'_'+bug_report_id+'_tf_idf_data.npz')
-    with open(data_prefix+'_'+bug_report_id+'_tf_idf_index_lookup', 'r') as index_lookup_file:
+    vectorized_data = sparse.load_npz(data_prefix + '_' + bug_report_id + '_tf_idf_data.npz')
+    with open(data_prefix + '_' + bug_report_id + '_tf_idf_index_lookup', 'r') as index_lookup_file:
         lookups = json.load(index_lookup_file)
 
     enriched_api_data, enriched_api_indexes = load_enriched_api(data_prefix, bug_report_id)
     enriched_report = enriched_api_data[-1, :]
 
-    (vectorized_report, vectorized_summary, vectorized_description) = load_bug_report(vectorized_data, lookups, bug_report_id)
+    (vectorized_report, vectorized_summary, vectorized_description) = load_bug_report(vectorized_data, lookups,
+                                                                                      bug_report_id)
 
-    ast_cache_collection = UnQLite(data_prefix+"_ast_cache_collection_db", flags = 0x00000100 | 0x00000001)
+    ast_cache_collection = UnQLite(data_prefix + "_ast_cache_collection_db", flags=0x00000100 | 0x00000001)
     bug_reports = load_bug_reports(bug_report_file_path)
     if bug_report_id in bug_reports:
         current_bug_report_summary = bug_reports[bug_report_id]['bug_report']['summary']
     else:
         current_bug_report_summary = retrieve_summary(bug_reports, bug_report_full_sha)['bug_report']['summary']
 
-
-    feature_3_data = sparse.load_npz(data_prefix+'_'+bug_report_id+'_feature_3_data.npz')
-    with open(data_prefix+'_'+bug_report_id+'_feature_3_index_lookup', 'r') as feature_3_file:
+    feature_3_data = sparse.load_npz(data_prefix + '_' + bug_report_id + '_feature_3_data.npz')
+    with open(data_prefix + '_' + bug_report_id + '_feature_3_index_lookup', 'r') as feature_3_file:
         feature_3_file_lookup = json.load(feature_3_file)
 
-    graph_data = sparse.load_npz(data_prefix+'_'+bug_report_id+'_graph_features_data.npz').tocsr()
-    with open(data_prefix+'_'+bug_report_id+'_graph_features_index_lookup', 'r') as graph_lookup_file:
+    graph_data = sparse.load_npz(data_prefix + '_' + bug_report_id + '_graph_features_data.npz').tocsr()
+    with open(data_prefix + '_' + bug_report_id + '_graph_features_index_lookup', 'r') as graph_lookup_file:
         graph_lookup = json.load(graph_lookup_file)
 
     features_5_6_data = sparse.load_npz(data_prefix + '_' + bug_report_id[0:7] + '_features_5_6_data.npz').tocsr()
@@ -220,7 +220,7 @@ def process_bug_report(data_prefix, bug_report_full_sha, bug_report_file_path, m
         method_source_end_index = current_lookup['methodsEnd']
 
         class_start_index = current_lookup['classNamesStart']
-        class_end_index = current_lookup['classNamesEnd'] 
+        class_end_index = current_lookup['classNamesEnd']
 
         method_names_start_index = current_lookup['methodNamesStart']
         method_names_end_index = current_lookup['methodNamesEnd']
@@ -230,20 +230,21 @@ def process_bug_report(data_prefix, bug_report_full_sha, bug_report_file_path, m
 
         comment_start_index = current_lookup['commentsStart']
         comment_end_index = current_lookup['commentsEnd']
-        
+
         current_graph_lookup = graph_lookup[current_file_sha]
 
         current_features_5_6 = features_5_6_lookup[current_file_sha]
 
         current_file_name = sha_to_file_name[current_file_sha]
 
-        f1 = feature_1(vectorized_report, vectorized_data, source_index, method_source_start_index, method_source_end_index)
+        f1 = feature_1(vectorized_report, vectorized_data, source_index, method_source_start_index,
+                       method_source_end_index)
         f2 = feature_2(enriched_report, enriched_api_data, enriched_api_indexes, current_file_sha)
         f3 = feature_3(feature_3_data, feature_3_file_lookup, current_file_sha)
         f4 = feature_4(current_bug_report_summary, ast_cache_collection, current_file_sha)
 
-        f5 = features_5_6_data[current_features_5_6, 0]
-        f6 = features_5_6_data[current_features_5_6, 1] / max_frequency
+        f5 = (features_5_6_data[current_features_5_6, 0])
+        f6 = (features_5_6_data[current_features_5_6, 1]) / max_frequency
 
         f7 = feature_sim(vectorized_summary, vectorized_data, class_start_index, class_end_index)
         f8 = feature_sim(vectorized_summary, vectorized_data, method_names_start_index, method_names_end_index)

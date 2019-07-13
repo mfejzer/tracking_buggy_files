@@ -32,14 +32,13 @@ def calculate_metrics_no_tie(verification_df, k_range=range(1, 21)):
         sorted_df = bug_report_files_dataframe2.sort_values(ascending=False, by=['result'])
         if sorted_df.shape[0] == 0:
             sorted_df = bug_report_files_dataframe.copy().sort_values(ascending=False, by=['result'])
-            print((bug_report_files_dataframe['used_in_fix'] == 1.0).sum())
+            # print((bug_report_files_dataframe['used_in_fix'] == 1.0).sum())
 
         precision_at_k = []
         # precision per k in range
         # large_k = sorted_df['used_in_fix'][(sorted_df['used_in_fix'] == 1.0)].count()
         # large_k = sorted_df['used_in_fix'][(sorted_df['used_in_fix'] == 1.0)]
         tmp = sorted_df
-        # TODO: czy na pewno tak
         a = range(1, tmp.shape[0] + 1)
         tmp['position'] = pd.Series(a, index=tmp.index)
 
@@ -62,7 +61,6 @@ def calculate_metrics_no_tie(verification_df, k_range=range(1, 21)):
             # exit(0)
             k_largest = unique_results[-k:]
 
-            # TODO: czy na pewno
             # if df_min in k_largest:
             #     k_largest.remove(df_min)
             #     print("Removing ", df_min, " from results")
@@ -74,7 +72,6 @@ def calculate_metrics_no_tie(verification_df, k_range=range(1, 21)):
             real_fixes_at_k = (largest_at_k['used_in_fix'] == 1.0).sum()
             # real_fixes_at_k = largest_at_k['used_in_fix'][(largest_at_k['used_in_fix'] == 1.0)].sum()
 
-            # TODO: czy aby na pewno
             # if real_fixes_at_k > k:
             #     real_fixes_at_k = k
 
@@ -90,7 +87,6 @@ def calculate_metrics_no_tie(verification_df, k_range=range(1, 21)):
         # accuracy
         for k in k_range:
             k_largest = unique_results[-k:]
-            # TODO:czy aby na pewno
             # if df_min in k_largest:
             #     k_largest.remove(df_min)
             #largest_at_k = sorted_df[sorted_df['result'].isin(k_largest)]

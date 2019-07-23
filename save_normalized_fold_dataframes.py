@@ -18,7 +18,6 @@ from operator import itemgetter
 from scipy import sparse
 from tqdm import tqdm
 
-from date_utils import convert_commit_date
 
 feature_columns = [
     "f1",
@@ -41,6 +40,7 @@ feature_columns = [
     "f18",
     "f19",
 ]
+
 
 def main():
     bug_report_file_path = sys.argv[1]

@@ -1,7 +1,158 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """Usage: %(prog)s [options] <json-file> <repository-path>
+
+Calculates bug fixing recency and bug fixing frequency for all paths
+for which is it non-zero from 'bug_report' information in the
+<json-file>, with the help of project history from given
+<repository-path>.  Prints the result, currently in JSON format, on
+its standard output or to given file.  As a side effect it sorts data
+by the bug report timestamp (which should be the same as sorting it by
+bug id).
+
+The extra information is added to the [possibly new] 'views' object.
+This data belongs neither to 'bug_report', not to 'commit', as it can
+contain data from one or the other, or even both,
+
+* bug fixing recency,   section 3.4.1:
+
+   f_5(r,s) = (r.month - last(r,s).month + 1)^-1
+
+* bug fixing frequency, section 3.4.2:
+
+   f_6(r,s) = |br(r,s)|
+
+where:
+ * r - set of bug reports (for which fix commit exists and is known)
+ * s - file path (of a file in a project)
+ * br(r,s) - set of bug reports, for which file 's' was fixed before
+   report 'r' was created
+ * last(r,s) ∈ br(r,s) - most recent previously fixed bug
+
+How is br(r,s) computed, with inductive algorithm
+-------------------------------------------------
+
+Let $B$ be a set of bug reports, and $S(t)$ be a set of all files in
+the snapshot of the project at given time $t$ (and $S(c)$ set of all
+files at given commit $c$).  Let $r \in B$ be a bug report, $r.f$ be a
+bugfix commit for a given bug report, and $t_r$ be its creation time.
+We will use $changes(c)$ to denote all files changed in commit $c$.
+
+Let's assume that $S(t_r)$ is a good approximation for the version
+that bug report was created for (the version that author of the bug
+report was using when he/she had found the bug in question). We will
+uses $S(r.f)$ for an approximation for this state, as in the original
+work.
+
+We can then define $br(r,s)$ in the following way:
+
+\begin{equation}
+  \label{eq:br-def}
+
+  br(r,s) = \{b \in B: b.f < t_r \and s(t_b) \in changes(b.f)\)
+
+\end{equation}
+
+It should be noted that the ordering relation $<_{br}$ defined as
+$$a <_{br} b   <=>   a.f < t_b$$ does not form strict ordering.
+If bug $b$ is created while another bug $a$ is still open, then
+neither $a <_{br> b$ not $b <_{br} a$ is true.
+
+The ordering by the bug report date (timestamp) however is is in fact
+strict order: $$a <_{rep} b   <=>   t_a < t_b$$.
+
+Let's define $succ(r)$ for $r \in B$ to be the next bug report in the
+bug report order after $r$, that is oldest bug report that was created
+after $r$.
+
+Let's assume that $fx(a,b)$, where $a, b \in B$ to be a set of bugfix
+commits, such that $$c \in fx(a,b)  <=>  t_a <= t(c) <= t_b$$, where
+$t(c)$ is the commit timestamp.  NOTE that we will (for now) assume
+that if $t(a.f) <= t_b$, for bugfix commit $a.f$ and bug reports $a$
+and $b$, then commit $a.f$ could be in $br(b,s)$ for some path $s$.
+
+The inductive algorithm goes as follow:
+
+ * For the first bug report $r_0$ in $B$ (in the order of bug report
+   creation date) the set $br(r_0)$ (defined as $br(r,s)$ for all
+   paths, that is: $br(r) := {s \in S(r_0): br(r,s)}$) is empty;
+   there are no earlier bug reports, thus no bug reports for which
+   bug fixing timestamp (which is always later than bug report
+   timestamp: $t_a < t(a.f)$ for each $a \in B$) is earlier than
+   this bug report.
+
+ * For each subsequent bug report, we update br(r-1) to br(r) in the
+   following way
+
+   1. Find all bug fixes that were not taken into account, that is
+      candidates = fx(r_last, r)
+
+   2. If not empty, update r_last
+
+   3. For each bug report x in candidates, translate br(*,*)
+      to t(x.f^), and then include x it in br(*,t(x.f^))
+
+   4. Translate final result to t(r.f^)
+
+   5. Compute all features dependent on br(r,*)
+
+
+Here we have used the folloring definition for br(r;t)
+
+\begin{equation}
+  \label{eq:br_t-def}
+
+  br(r;t) = \{(b,s) \in S(t) x B:  b.f < r.f \and s(t) \in S(t)
+              \and s(b.f^) \in changes(b.f).preimage \}
+         ~= \union_{s \in S(t)} br(r,s)
+\end{equation}
+
+
+The description below is taken from "Mapping Bug Reports to Relevant
+Files: A Ranking Model, a Fine-Grained Benchmark, and Feature
+Evaluation" (chapter numbers before slash) and preceding work
+"Learning to Rank Relevant Files for Bug Reports using Domain
+Knowledge" (chapter numbers after slash).
+
+3.5 / 3.4.1 Bug-Fixing Recency
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The change history of source codes provides information that can help
+predict fault-prone files. For example, a source code file that was
+fixed very recently is more likely to still contain bugs than a file
+that was last fixed long time in the past, or never fixed.
+
+As in Section 3.2, let 'br(r,s)' be the set of bug reports for
+which file 's' was fixed before bug report 'r' was created. Let
+'last(r,s) ∈ br(r,s)' be the most recent previously fixed bug.
+Also, for any bug report 'r', let 'r.month' denote the month
+when the bug report was created. We then define the bug-fixing
+recency feature to be the inverse of the distance in
+months between 'r' and 'last(r,s):
+
+  f_5(r,s) = (r.month - last(r,s).month + 1)^-1      : (8)
+
+Thus, if 's' was last fixed in the same month that 'r' was created,
+'f_5(r,s)' is 1. If 's' was last fixed one month before 'r' was
+created, 'f_5(r, s)' is 0.5.
+
+3.5 / 3.4.2 Bug-Fixing Frequency
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A source file that has been frequently fixed may be a fault-prone
+file. Consequently, we define a bug-fixing frequency
+feature as the number of times a source file has been fixed
+before the current bug report:
+
+  f_6(r,s) = |br(r,s)|                               : (9)
+
+This feature will be automatically normalized during the
+feature scaling step described in Section 3.7 below
+
+
+This view is, as far as I understand it, intended to represent quality
+of the code in the given file, based on bug reports and bug fixes.
 
 """
 from __future__ import print_function
@@ -228,7 +379,7 @@ def process_data(store, data, repo, count_files=False):
     # (i.e. bytes).  NOTE: this may change for Python 3.x
     #
     # NOTE: SHA-1 hash in hex is always in 'ascii' range and encoding
-    br_remaining = list(map(str, br_remaining))
+    br_remaining = map(str, br_remaining)
     br_new = []
 
     print('Computing br(r,t)', file=sys.stderr)
@@ -352,8 +503,6 @@ def process_data(store, data, repo, count_files=False):
             fixstatus = retrieve_changes_status(repo, br_commit_full)
             changes_effective = \
                 br_add_bugfix(br_data, bugfix=br_commit, changes=fixstatus)
-            if br_commit not in stats:
-                stats[br_commit] = {}
             stats[br_commit]['n_changes_eff'] = len(changes_effective)
 
             # update previous

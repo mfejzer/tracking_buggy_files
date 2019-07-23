@@ -391,9 +391,7 @@ def safeopen(name, mode='r', buffering=1):
         means line buffered (which is the default), and larger numbers
         specify the buffer size.
     """
-    from io import IOBase
-
-    if isinstance(name, IOBase):
+    if isinstance(name, file):
         return name
     elif name == '-':
         if mode == 'r':

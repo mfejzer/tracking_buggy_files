@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """Usage: %(prog)s [options] <json-file> <repository-path>
@@ -21,7 +21,7 @@ It can optionally sort data by bug timestamp, or by timestamp of the
 commit fixing the bug.  When not sorting, this script preserves the
 order of keys in JSON.
 """
-
+from __future__ import print_function
 
 import sys
 import re
@@ -171,7 +171,7 @@ def fix_commit_metadata(data):
         trim_commit_info(data[commit]['commit']['metadata'])
         data[commit]['commit']['metadata']['timestamp'] = \
             datetime_to_timestamp(convert_commit_date(
-                data[commit]['commit']['metadata']['date'].replace('Date:', '').strip()
+                data[commit]['commit']['metadata']['date']
             ))
 
     print('%d / %d skipped: had already "timestamp" field in commit metadata' %
@@ -332,26 +332,26 @@ def data_sort_keys(data):
     for commit in tqdm(data):
         # sort 'diff' by pathname, i.e. by keys
         data[commit]['commit']['diff'] = OrderedDict(
-            sorted(list(data[commit]['commit']['diff'].items()),
-                   key=lambda k, v: k)
+            sorted(data[commit]['commit']['diff'].items(),
+                   key=lambda (k,v): k)
         )
         # sort inner keys in specified order
         data[commit]['bug_report'] = OrderedDict(
-            sorted(list(data[commit]['bug_report'].items()),
-                   key=lambda k, v: bug_report_order.get(k, 999))
+            sorted(data[commit]['bug_report'].items(),
+                   key=lambda (k,v): bug_report_order.get(k, 999))
         )
         data[commit]['commit']['metadata'] = OrderedDict(
-            sorted(list(data[commit]['commit']['metadata'].items()),
-                   key=lambda k, v: commit_metadata_order.get(k, 999))
+            sorted(data[commit]['commit']['metadata'].items(),
+                   key=lambda (k,v): commit_metadata_order.get(k, 999))
         )
         data[commit]['commit'] = OrderedDict(
-            sorted(list(data[commit]['commit'].items()),
-                   key=lambda k, v: commit_order.get(k, 999))
+            sorted(data[commit]['commit'].items(),
+                   key=lambda (k,v): commit_order.get(k, 999))
         )
         # sort keys in specified order
         data[commit] = OrderedDict(
-            sorted(list(data[commit].items()),
-                   key=lambda k, v: main_keys_order.get(k, 999))
+            sorted(data[commit].items(),
+                   key=lambda (k,v): main_keys_order.get(k, 999))
         )
 
 

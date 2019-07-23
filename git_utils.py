@@ -304,7 +304,7 @@ def retrieve_commit(repo, commit='HEAD', ext='.java'):
     # because I don't want to re-implement parsing of git-diff output
     # format or commit objects.  Instead we use one of other
     # implementations.
-    if isinstance(repo, str):
+    if isinstance(repo, basestring):
         repo = git.Repo(repo)
         #repo = pygit2.Repository(repo)
 
@@ -357,7 +357,7 @@ def retrieve_commit_metadata(repo, revision):
         return {
             'sha': commit.hexsha,
             # TODO: committer vs author
-            'author': '{} <{}>'.format(commit.author.name,
+            'author': u'{} <{}>'.format(commit.author.name,
                                         commit.author.email),
             'timestamp': commit.authored_date,
             # NOTE: %-d (no leading 0) is platform-dependent
@@ -378,7 +378,7 @@ def retrieve_commit_metadata(repo, revision):
         return {
             'sha': commit.hex,
             # TODO: committer vs author
-            'author': '{} <{}>'.format(commit.author.name,
+            'author': u'{} <{}>'.format(commit.author.name,
                                         commit.author.email),
             'timestamp': commit.author.time,
             # NOTE: %-d (no leading 0) is platform-dependent
@@ -520,7 +520,7 @@ def retrieve_changes_status(repo, commit='HEAD', prev=None):
     if prev is None:
         prev = commit+'^'
 
-    if isinstance(repo, str):
+    if isinstance(repo, basestring):
         cmd = [
             'git', '-C', repo, 'diff-tree', '--no-commit-id',
             # turn on renames [with '-M']; note that parsing is a bit
@@ -597,46 +597,6 @@ def retrieve_changes_status(repo, commit='HEAD', prev=None):
                                   (type(repo), repo))
 
 
-def retrieve_fixes(repo, commit='HEAD'):
-    """Retrieve list of files fixed by given bugfix revision in repo
-
-    This is the list of pathnames present in pre-image, i.e. names of files
-    before the bugfix.  It excludes files which were added in bugfix commit.
-
-    TODO: ensure that it always return unicode or always str.
-
-    Parameters
-    ----------
-    repo : str | git.Repo | pygit2.Repository
-        Pathname to the repository, or either GitPython (git.Repo)
-        or pygit2 (pygit2.Repository) repository object.
-
-        Type of this parameter selects which implementation is used.
-
-    commit : str, optional
-        The commit for which to list changes.  Defaults to 'HEAD',
-        that is the current commit.  The changes are relative to
-        commit^, that is the previous commit (first parent of the
-        given commit).
-
-    Returns
-    -------
-    list
-        List of full pathnames of all 'fixed' files in commit.
-        NOTE: those are names in the pre-image (old names).
-
-        Pathnames are :obj:`str` for pygit2 implementation and
-        :obj:`unicode` for GitPython and subprocess-based
-        implementations.
-
-        All implementation do perform rename detection.
-        TODO: make rename detection configurable
-    """
-    changes = retrieve_changes_status(repo, commit)
-    return [old_path for (old_path, new_path) in list(changes.keys())
-            if old_path is not None]
-
-
 def retrieve_contents(repo, commit, path, encoding=None):
     """Retrieve contents of given file at given revision / tree
 
@@ -670,7 +630,7 @@ def retrieve_contents(repo, commit, path, encoding=None):
     if encoding is None:
         encoding = DEFAULT_FILE_ENCODING
 
-    if isinstance(repo, str):
+    if isinstance(repo, basestring):
         cmd = [
             'git', '-C', repo, 'show',
             #'git', '-C', repo, 'cat-file', 'blob',
@@ -722,7 +682,7 @@ def checkout_revision(repo, commit):
     """
     ## TODO: implement checking out into separate worktree
     ##
-    if isinstance(repo, str):
+    if isinstance(repo, basestring):
         cmd = [
             'git', '-C', repo, 'checkout', '-q', commit,
         ]
@@ -767,7 +727,7 @@ def create_tag(repo, name, commit='HEAD'):
     commit : str, optional
         Revision to be tagged.  Defaults to 'HEAD'.
     """
-    if isinstance(repo, str):
+    if isinstance(repo, basestring):
         cmd = [
             'git', '-C', repo, 'tag', name, commit,
         ]
@@ -803,7 +763,7 @@ def retrieve_tags(repo):
     list
         List of all tags in the repository.
     """
-    if isinstance(repo, str):
+    if isinstance(repo, basestring):
         process = subprocess.Popen([
             'git', '-C', repo, 'tag', '--list'
         ], stdout=subprocess.PIPE)
@@ -852,7 +812,7 @@ def find_commit_by_timestamp(repo, timestamp, start_commit='HEAD'):
         among others for not finding any commit that fullfills
         the condition.  At least it is not tested.
     """
-    if isinstance(repo, str):
+    if isinstance(repo, basestring):
         cmd = [
             'git', '-C', repo, 'rev-list',
             '--min-age='+str(timestamp), '-1',

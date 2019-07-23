@@ -75,7 +75,7 @@ def datetime_to_timestamp(dt, epoch=datetime(1970, 1, 1, tzinfo=UTC())):
     #assert dt.tzinfo is not None and dt.utcoffset() is not None
     try:
         # Python 3.3+
-        return dt.timestamp()
+        dt.timestamp()
     except:
         # Python 2.x
         return (dt - epoch).total_seconds()

@@ -3,7 +3,7 @@
 
 """Usage: %(scriptName) <bug_reports.json> <tokenized_source.json> <data_prefix>
 Requires results of:
-process_bug_locator_fixed_version.py
+process_buglocator.py
 tokenize_buglocator_source.py
 """
 

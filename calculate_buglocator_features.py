@@ -101,7 +101,7 @@ def feature_3(feature_3_data, feature_3_report_lookup, file_index):
             feature_3_file_index = feature_3_report_lookup['files'][file]
             report_row = feature_3_data[report_index, :]
             file_row = feature_3_data[feature_3_file_index, :]
-            return cosine_similarity(report_row, file_row)
+            return float(cosine_similarity(report_row, file_row))
     return 0.0
 
 

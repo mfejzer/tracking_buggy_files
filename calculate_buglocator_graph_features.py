@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""Usage: %(scriptName) <bug_reports.json> <data_prefix> <repository_path>
+"""Usage: %(scriptName) <tokenized_source_snapshot_file> <data_prefix>
 Requires results of "java-ast-extractor-graph-notes.jar" in repository
 """
 

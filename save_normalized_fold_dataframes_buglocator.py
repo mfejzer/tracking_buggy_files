@@ -121,7 +121,7 @@ def save_normalized_data(file_prefix, fold_number, fold_testing, fold_training, 
     # print(fold_training.keys())
     # print(fold_testing.keys())
     # exit(0)
-    for current_fold_number in range(fold_number + 1):
+    for current_fold_number in range(fold_number + 2):
         if current_fold_number == 0:
             k = 1
             min_df = min_dict[k]
@@ -186,7 +186,7 @@ def save_normalized_data(file_prefix, fold_number, fold_testing, fold_training, 
     #     print(normalized_df.max())
     #     print(normalized_df[normalized_df > 1.0].count())
 
-    info = {'fold_number': fold_number+1}
+    info = {'fold_number': fold_number + 1}
     print(info)
     with open(file_prefix + '_fold_info', 'w') as info_file:
         json.dump(info, info_file)

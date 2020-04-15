@@ -1,5 +1,5 @@
 # tracking_buggy_files
-This repository contains scripts to process two datasets, feature preparation code and implementation of algorithms from publication "Tracking Buggy Files: Two New Efficient Adaptive Bug Localization methods".
+This repository contains scripts to process two datasets, feature preparation code and implementation of algorithms from publication "Tracking Buggy Files: New Efficient Adaptive Bug Localization method".
 The java-ast-extractor contains 4 programs enriching source code files with ast trees.
 The ast trees are stored as git notes per each source file.
 The java 8 and apache maven are required to compile java-ast-extractor.
@@ -38,11 +38,6 @@ Example for AspectJ project, using same data prefix as feature calculation
 ./load_data_to_joblib_memmap.py aspectj
 ./train_adaptive.py aspectj
 ```
-# How to replicate state of the art method results (requires svm_rank_learn in the same directory)
-```
-./train_replication.py aspectj
-```
-
 # Dataset repositories containing git notes:
 * https://bitbucket.org/mfejzer/tracking_buggy_files_aspectj_dataset/
 * https://bitbucket.org/mfejzer/tracking_buggy_files_birt_dataset/

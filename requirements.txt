@@ -1,4 +1,5 @@
 bitmap==0.0.6
+bugzilla==1.0.0
 cffi==1.12.3
 cycler==0.10.0
 Cython==0.29.12

@@ -20,7 +20,7 @@ git fetch origin refs/notes/graph:refs/notes/graph
 ./fix_and_augment.py aspectj_base.json ../tracking_buggy_files_aspectj_dataset/ > aspectj_aug.json
 ./pick_bug_freq.py aspectj_aug.json ../tracking_buggy_files_aspectj_dataset/ > aspectj.json
 ```
-** To add missing bug reports descriptions adjust results of "process_bug_reports" using additional script, and use result json file in in the next step:
+  * To add missing bug reports descriptions adjust results of "process_bug_reports" using additional script, and use result json file in in the next step:
 ```
 ./add_missing_description_as_separate_reports.py aspectj_base.json aspectj_base_with_descriptions.json BUGZILLA_API_KEY BUGZILLA_API_URL
 ```

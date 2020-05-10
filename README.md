@@ -38,14 +38,6 @@ Example for AspectJ project, using same data prefix as feature calculation
 ./load_data_to_joblib_memmap.py aspectj
 ./train_adaptive.py aspectj
 ```
-# Dataset repositories containing git notes:
-* https://bitbucket.org/mfejzer/tracking_buggy_files_aspectj_dataset/
-* https://bitbucket.org/mfejzer/tracking_buggy_files_birt_dataset/
-* https://bitbucket.org/mfejzer/tracking_buggy_files_eclipse_platform_ui_dataset/
-* https://bitbucket.org/mfejzer/tracking_buggy_files_jdt_dataset/
-* https://bitbucket.org/mfejzer/tracking_buggy_files_swt_dataset/
-* https://bitbucket.org/mfejzer/tracking_buggy_files_tomcat_dataset/
-
 # How to prepare eclipse project from single version buglocator dataset
 Example using data prefix eclipse_311 and eclipse 311 sources in "sources" dir.
 Requires compiled java-ast-extractor.
@@ -62,3 +54,23 @@ java -jar java-ast-extractor-source-snapshot.jar sources extract.txt
 ./calculate_buglocator_features.py EclipseBugRepository.json eclipse_311
 ./save_normalized_fold_dataframes_buglocator.py EclipseBugRepository.json eclipse_311
 ```
+# Dataset repositories containing git notes:
+* https://bitbucket.org/mfejzer/tracking_buggy_files_aspectj_dataset/
+* https://bitbucket.org/mfejzer/tracking_buggy_files_birt_dataset/
+* https://bitbucket.org/mfejzer/tracking_buggy_files_eclipse_platform_ui_dataset/
+* https://bitbucket.org/mfejzer/tracking_buggy_files_jdt_dataset/
+* https://bitbucket.org/mfejzer/tracking_buggy_files_swt_dataset/
+* https://bitbucket.org/mfejzer/tracking_buggy_files_tomcat_dataset/
+
+# Computed features copy
+After downloading each archive compute normalization and load data, using matching project file pattern - example for AspectJ:
+```
+./save_normalized_fold_dataframes.py aspectj.json aspectj
+./load_data_to_joblib_memmap.py aspectj
+```
+* https://mat.umk.pl/mfejzer/aspectj_data.tar.bz2
+* https://mat.umk.pl/mfejzer/birt_data.tar.bz2
+* https://mat.umk.pl/mfejzer/eclipse_data.tar.bz2
+* https://mat.umk.pl/mfejzer/jdt_data.tar.bz2
+* https://mat.umk.pl/mfejzer/swt_data.tar.bz2
+* https://mat.umk.pl/mfejzer/tomcat_data.tar.bz2

@@ -7,7 +7,7 @@ The java 8 and apache maven are required to compile java-ast-extractor.
 Rest of scripts require python 3 and python 2.
 
 # How to replicate dataset - example for AspectJ project, using already existing git notes
-* Download original dataset
+* Download original Ye et al. dataset https://figshare.com/articles/dataset/The_dataset_of_six_open_source_Java_projects/951967
 * Clone repository https://bitbucket.org/mfejzer/tracking_buggy_files_aspectj_dataset/
 * Fetch git notes containing ast trees and import graphs
 ```

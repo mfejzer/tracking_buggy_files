@@ -1,10 +1,25 @@
-# tracking_buggy_files
+# Tracking buggy files
 This repository contains scripts to process two datasets, feature preparation code and implementation of algorithms from publication "Tracking Buggy Files: New Efficient Adaptive Bug Localization Algorithm".
 Main directory contains python code to prepare features and conduct experiments.
 The java-ast-extractor directory contains 4 programs enriching source code files with ast trees, utilized during feature construction.
 The ast trees are stored as git notes per each source file.
 The java 8 and apache maven are required to compile java-ast-extractor.
 Rest of scripts require python 3 and python 2.
+
+## How to cite 
+Paper https://doi.org/10.1109/TSE.2021.3064447
+```
+@ARTICLE{9372820,
+  author={Fejzer, Mikołaj and Narębski, Jakub and Przymus, Piotr and Stencel, Krzysztof},
+  journal={IEEE Transactions on Software Engineering}, 
+  title={Tracking Buggy Files: New Efficient Adaptive Bug Localization Algorithm}, 
+  year={2022},
+  volume={48},
+  number={7},
+  pages={2557-2569},
+  doi={10.1109/TSE.2021.3064447}
+}
+```
 
 # How to replicate dataset - example for AspectJ project, using already existing git notes
 * Download original Ye et al. dataset https://figshare.com/articles/dataset/The_dataset_of_six_open_source_Java_projects/951967
